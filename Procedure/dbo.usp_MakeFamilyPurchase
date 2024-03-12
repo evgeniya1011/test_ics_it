@@ -1,0 +1,25 @@
+CREATE PROCEDURE  dbo.usp_MakeFamilyPurchase
+  @FamilySurName varchar(255)
+AS
+BEGIN
+	SET NOCOUNT ON;
+
+    DECLARE @TotalValue DECIMAL
+    DECLARE @ErrorMessage varchar(255);
+    IF NOT EXISTS (SELECT 1 FROM dbo.Family as f WHERE f.SurName = @FamilySurName)
+	BEGIN
+        SET @ErrorMessage = 'Семьи с фамилией %s не существует.'
+        RAISERROR(@ErrorMessage, 16, 1, @FamilySurName);
+        RETURN;
+    END;
+
+    -- Вычисляем общую сумму покупок для заданной семьи
+    SELECT @TotalValue = SUM(Value)
+    FROM dbo.Basket
+    WHERE FamilySurName = @FamilySurName;
+
+    -- Обновляем бюджет семьи
+    UPDATE dbo.Family
+    SET BudgetValue = BudgetValue - ISNULL(@TotalValue, 0)
+    WHERE SurName = @FamilySurName;
+END
